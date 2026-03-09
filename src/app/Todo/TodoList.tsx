@@ -3,48 +3,42 @@
 import { IconPlus } from "@tabler/icons-react";
 import { Todo, TodoItem } from "./Todo";
 import { useState } from "react";
+import {
+  createTodo,
+  deleteTodo as deleteTodoAction,
+  completeTodo,
+} from "../Database/actions";
 
-export const TodoList = ({ initialTodos }: { initialTodos?: TodoItem[] }) => {
-  const [todos, setTodos] = useState<TodoItem[]>([
-    {
-      id: 1,
-      text: "item 1",
-      completed: false,
-    },
-    {
-      id: 2,
-      text: "item 2",
-      completed: false,
-    },
-    {
-      id: 3,
-      text: "item 3",
-      completed: true,
-    },
-  ]);
+export const TodoList = ({ initialTodos }: { initialTodos: TodoItem[] }) => {
+  const [todos, setTodos] = useState<TodoItem[]>(initialTodos);
   const [newTodoText, setNewTodoText] = useState("");
-  const handleAddItem = () => {
+
+  const handleAddItem = async () => {
     if (newTodoText.length === 0) return;
-    // pop up message reminder if the input is empty --- IGNORE ---
-    setTodos((prev) => [
-      ...prev,
-      { id: prev.length + 1, text: newTodoText, completed: false },
-    ]);
-  };
-  const toggleTodo = (id: number) => {
-    setTodos((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
-    );
+    const newTodo = await createTodo(newTodoText);
+    if (!newTodo) return;
+    setTodos((prev) => [...prev, newTodo]);
+    setNewTodoText("");
   };
 
-  const deleteTodo = (id: number) => {
+  const toggleTodo = async (id: number) => {
+    const todoToToggle = todos.find((t) => t.id === id);
+    if (!todoToToggle) return;
+
+    const updatedTodo = await completeTodo(id, !todoToToggle.completed);
+
+    setTodos((prev) => prev.map((t) => (t.id === id ? updatedTodo : t)));
+  };
+
+  const deleteTodo = async (id: number) => {
+    await deleteTodoAction(id);
     setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
     <>
       <div className="font-medium text-2xl">My Todo List</div>
-      <ul className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left bg-content w-full px-2 py-1 rounded-md flex flex-col">
+      <ul className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left bg-content w-full px-2 py-1 rounded-md flex flex-col gap-2">
         {todos.map((val) => (
           <Todo
             key={val.id}
